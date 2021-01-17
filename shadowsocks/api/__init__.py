@@ -1,7 +1,7 @@
 import httpx
 
 
-class BaseAPI(object):
+class BaseApi(object):
     """
     API基类
     """

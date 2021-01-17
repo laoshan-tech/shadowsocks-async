@@ -1,11 +1,11 @@
 import logging
 
-from shadowsocks.api import BaseAPI
+from shadowsocks.api import BaseApi
 
 logger = logging.getLogger(__name__)
 
 
-class TYZApi(BaseAPI):
+class TYZApi(BaseApi):
     def __init__(self):
         super().__init__()
 

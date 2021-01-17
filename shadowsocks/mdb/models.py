@@ -1,6 +1,11 @@
+import json
+import logging
+
 import peewee
 
 from shadowsocks.mdb import BaseModel, IPSetField
+
+logger = logging.getLogger(__name__)
 
 
 class User(BaseModel):
@@ -27,3 +32,29 @@ class User(BaseModel):
         :return:
         """
         return cls.select().where(cls.port == int(port)).order_by(cls.single_port_access_weight.desc())
+
+    @classmethod
+    def __create_or_update_by_user_data_list(cls, user_data_list: list):
+        """
+        从用户数据列表中创建或更新User表
+        :param user_data_list:
+        :return:
+        """
+        user_ids = []
+        for user_data in user_data_list:
+            user_ids.append(user_data["user_id"])
+            cls._create_or_update_user_from_data(user_data)
+        cnt = cls.delete().where(cls.user_id.not_in(user_ids)).execute()
+        if cnt:
+            logger.info(f"成功删除 {cnt} 个用户")
+
+    @classmethod
+    def create_or_update_from_json(cls, path):
+        """
+        从JSON配置文件中创建或更新User表
+        :param path:
+        :return:
+        """
+        with open(path, "r") as f:
+            data = json.load(f)
+        cls._create_or_update_by_user_data_list(data["users"])
