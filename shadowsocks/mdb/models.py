@@ -3,7 +3,7 @@ import logging
 
 import peewee
 
-from shadowsocks.mdb import BaseModel, IPSetField
+from shadowsocks.mdb import BaseModel, IPSetField, db
 
 logger = logging.getLogger(__name__)
 
@@ -34,6 +34,17 @@ class User(BaseModel):
         return cls.select().where(cls.port == int(port)).order_by(cls.single_port_access_weight.desc())
 
     @classmethod
+    @db.atomic("EXCLUSIVE")
+    def __create_or_update_user_from_data(cls, data):
+        user_id = data.pop("user_id")
+        user, created = cls.get_or_create(user_id=user_id, defaults=data)
+        if not created:
+            user.update_from_dict(data)
+            user.save()
+        logger.debug(f"正在创建/更新用户 {user}")
+        return user
+
+    @classmethod
     def __create_or_update_by_user_data_list(cls, user_data_list: list):
         """
         从用户数据列表中创建或更新User表
@@ -43,7 +54,7 @@ class User(BaseModel):
         user_ids = []
         for user_data in user_data_list:
             user_ids.append(user_data["user_id"])
-            cls._create_or_update_user_from_data(user_data)
+            cls.__create_or_update_user_from_data(user_data)
         cnt = cls.delete().where(cls.user_id.not_in(user_ids)).execute()
         if cnt:
             logger.info(f"成功删除 {cnt} 个用户")
