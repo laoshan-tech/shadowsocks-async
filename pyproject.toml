@@ -11,6 +11,8 @@ fire = "^0.3.1"
 sentry-sdk = "^0.19.5"
 peewee = "^3.14.0"
 httpx = "^0.16.1"
+cryptography = "^3.3.1"
+hkdf = "^0.0.3"
 
 [tool.poetry.dev-dependencies]
 black = "^20.8b1"

@@ -1,5 +1,6 @@
 import datetime
 import json
+from typing import Union
 
 import peewee
 
@@ -36,7 +37,7 @@ class IPSetField(peewee.CharField):
 
         return data
 
-    def python_value(self, value):
+    def python_value(self, value) -> Union[set, None]:
         if value is None:
             return value
         else:

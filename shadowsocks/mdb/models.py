@@ -1,8 +1,13 @@
+from __future__ import annotations
+
 import json
 import logging
 
 import peewee
+from cryptography.exceptions import InvalidTag
 
+from shadowsocks import protocol_flag as flag
+from shadowsocks.ciphers import SUPPORT_METHODS
 from shadowsocks.mdb import BaseModel, IPSetField, db
 
 logger = logging.getLogger(__name__)
@@ -45,7 +50,7 @@ class User(BaseModel):
         return user
 
     @classmethod
-    def __create_or_update_by_user_data_list(cls, user_data_list: list):
+    def __create_or_update_user_from_data_list(cls, user_data_list: list):
         """
         从用户数据列表中创建或更新User表
         :param user_data_list:
@@ -68,4 +73,62 @@ class User(BaseModel):
         """
         with open(path, "r") as f:
             data = json.load(f)
-        cls._create_or_update_by_user_data_list(data["users"])
+        cls.__create_or_update_user_from_data_list(data["users"])
+
+    @db.atomic("EXCLUSIVE")
+    def record_ip(self, peer):
+        """
+        记录连接IP
+        :param peer:
+        :return:
+        """
+        if not peer:
+            return
+        self.conn_ip_set.add(peer[0])
+        User.update(conn_ip_set=self.conn_ip_set).where(User.user_id == self.user_id).execute()
+
+    @db.atomic("EXCLUSIVE")
+    def record_traffic(self, upload, download):
+        """
+        记录流量
+        :param upload:
+        :param download:
+        :return:
+        """
+        User.update(
+            download_traffic=User.download_traffic + download,
+            upload_traffic=User.upload_traffic + upload,
+            total_traffic=User.total_traffic + upload + download,
+        ).where(User.user_id == self.user_id).execute()
+
+    @classmethod
+    def find_access_user(cls, port, method, ts_protocol, first_data) -> User:
+        """
+        查找对应的user
+        :param port:
+        :param method:
+        :param ts_protocol:
+        :param first_data:
+        :return:
+        """
+        cipher_cls = SUPPORT_METHODS[method]
+        access_user = None
+
+        for user in cls.list_by_port(port).iterator():
+            try:
+                cipher = cipher_cls(user.password)
+                if ts_protocol == flag.TRANSPORT_TCP:
+                    cipher.decrypt(first_data)
+                else:
+                    cipher.unpack(first_data)
+                access_user = user
+                break
+            except InvalidTag:
+                continue
+
+        if access_user:
+            # 记下成功访问的用户，下次优先找到他
+            access_user.access_order += 1
+            access_user.save()
+
+        return access_user
