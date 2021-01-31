@@ -1,11 +1,19 @@
+import inspect
 import logging
 import os
 
 import fire
 
+from shadowsocks.mdb import models, BaseModel
+
+logger = logging.getLogger(__name__)
+
 
 class Server(object):
     def __init__(self) -> None:
+        self.__prepared = False
+
+    def __init_config(self) -> None:
         self.config = {
             "LISTEN_HOST": os.getenv("SS_LISTEN_HOST", "0.0.0.0"),
             "SENTRY_DSN": os.getenv("SS_SENTRY_DSN"),
@@ -18,10 +26,7 @@ class Server(object):
         }
         self.log_level = self.config["LOG_LEVEL"]
 
-    def __init_config(self) -> None:
-        pass
-
-    def __prepare_logger(self):
+    def __prepare_logger(self) -> None:
         """
         初始化日志类
         :return:
@@ -37,6 +42,27 @@ class Server(object):
         logging.basicConfig(
             format="[%(levelname)s]%(asctime)s %(funcName)s line:%(lineno)d %(message)s", level=level,
         )
+
+    @staticmethod
+    def __init_memory_db() -> None:
+        for _, model in inspect.getmembers(models, inspect.isclass):
+            if issubclass(model, BaseModel) and model != BaseModel:
+                model.create_table()
+                logger.info(f"正在创建 {model} 内存数据库")
+
+    def __prepare(self) -> None:
+        """
+        预处理
+        :return:
+        """
+        if self.__prepared:
+            return
+
+        self.__init_config()
+        self.__prepare_logger()
+        self.__init_memory_db()
+
+        self.__prepared = True
 
 
 def main():
