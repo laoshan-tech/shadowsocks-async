@@ -1,0 +1,76 @@
+{
+  "users": [
+    {
+      "user_id": 1,
+      "port": 2345,
+      "method": "none",
+      "password": "hellotheworld1",
+      "enable": true,
+      "speed_limit": 0
+    },
+    {
+      "user_id": 3,
+      "port": 2346,
+      "method": "chacha20-ietf-poly1305",
+      "password": "hellotheworld2",
+      "enable": true,
+      "speed_limit": 384000
+    },
+    {
+      "user_id": 4,
+      "port": 2346,
+      "method": "chacha20-ietf-poly1305",
+      "password": "hellotheworld3",
+      "enable": true,
+      "speed_limit": 384000
+    },
+    {
+      "user_id": 5,
+      "port": 1025,
+      "method": "chacha20-ietf-poly1305",
+      "password": "hellotheworld4",
+      "enable": true,
+      "speed_limit": 384000
+    },
+    {
+      "user_id": 6,
+      "port": 1025,
+      "method": "chacha20-ietf-poly1305",
+      "password": "hellotheworld5",
+      "enable": true,
+      "speed_limit": 384000
+    },
+    {
+      "user_id": 7,
+      "port": 1025,
+      "method": "chacha20-ietf-poly1305",
+      "password": "hellotheworld6",
+      "enable": true,
+      "speed_limit": 384000
+    },
+    {
+      "user_id": 8,
+      "port": 1025,
+      "method": "chacha20-ietf-poly1305",
+      "password": "9vckC1IkKpIp",
+      "enable": true,
+      "speed_limit": 384000
+    },
+    {
+      "user_id": 9,
+      "port": 1026,
+      "method": "aes-128-gcm",
+      "password": "9vckC1IkKpIp1",
+      "enable": true,
+      "speed_limit": 384000
+    },
+    {
+      "user_id": 10,
+      "port": 1027,
+      "method": "aes-256-gcm",
+      "password": "9vckC1IkKpIp2",
+      "enable": true,
+      "speed_limit": 384000
+    }
+  ]
+}

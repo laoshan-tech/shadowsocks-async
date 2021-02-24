@@ -7,7 +7,7 @@ from shadowsocks.api.tyz import TYZApi
 
 @unique
 class PanelType(Enum):
-    TYZ = "TYZ"
+    TYZ = "tyz"
     SSPanel = "sspanel"
     V2Board = "v2board"
 

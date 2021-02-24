@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import json
 import logging
 
 import peewee
@@ -50,7 +49,7 @@ class User(BaseModel):
         return user
 
     @classmethod
-    def __create_or_update_user_from_data_list(cls, user_data_list: list):
+    def create_or_update_user_from_data_list(cls, user_data_list: list):
         """
         从用户数据列表中创建或更新User表
         :param user_data_list:
@@ -63,17 +62,6 @@ class User(BaseModel):
         cnt = cls.delete().where(cls.user_id.not_in(user_ids)).execute()
         if cnt:
             logger.info(f"成功删除 {cnt} 个用户")
-
-    @classmethod
-    def create_or_update_from_json(cls, path):
-        """
-        从JSON配置文件中创建或更新User表
-        :param path:
-        :return:
-        """
-        with open(path, "r") as f:
-            data = json.load(f)
-        cls.__create_or_update_user_from_data_list(data["users"])
 
     @db.atomic("EXCLUSIVE")
     def record_ip(self, peer):

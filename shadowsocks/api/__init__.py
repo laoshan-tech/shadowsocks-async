@@ -15,7 +15,7 @@ class BaseApi(object):
 
         self.__prepare_api()
 
-    def __prepare_api(self):
+    def __prepare_api(self) -> None:
         """
         拼装API地址
         :return:
@@ -23,14 +23,14 @@ class BaseApi(object):
         self.fetch_api = self.endpoint
         self.report_api = self.endpoint
 
-    async def fetch_user_list(self):
+    async def fetch_user_list(self) -> list:
         """
         获取user列表
         :return:
         """
         raise NotImplementedError("fetch_user_list method not defined")
 
-    async def report_user_stats(self):
+    async def report_user_stats(self) -> None:
         """
         上报user信息
         :return:
