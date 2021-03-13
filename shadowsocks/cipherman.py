@@ -7,17 +7,19 @@ from shadowsocks.utils import AutoResetBloomFilter
 
 
 class CipherMan:
+    """
+    TODO 流量、链接数限速
+    """
+
     bf = AutoResetBloomFilter()
 
-    # TODO 流量、链接数限速
-
     def __init__(
-        self, user_port=None, access_user: User = None, ts_protocol=flag.TRANSPORT_TCP, peername=None,
+        self, user_port: int = None, access_user: User = None, ts_protocol: int = flag.TRANSPORT_TCP, peer=None,
     ):
         self.user_port = user_port
         self.access_user = access_user
         self.ts_protocol = ts_protocol
-        self.peername = peername
+        self.peer = peer
 
         self.cipher = None
         self._buffer = bytearray()
@@ -36,13 +38,13 @@ class CipherMan:
             self._first_data_len = 0
 
     @classmethod
-    def get_cipher_by_port(cls, port, ts_protocol, peername) -> CipherMan:
+    def get_cipher_by_port(cls, port, ts_protocol, peer) -> CipherMan:
         user_query = User.list_by_port(port)
         if user_query.count() == 1:
             access_user = user_query.first()
         else:
             access_user = None
-        return cls(port, access_user=access_user, ts_protocol=ts_protocol, peername=peername)
+        return cls(port, access_user=access_user, ts_protocol=ts_protocol, peer=peer)
 
     def encrypt(self, data: bytes):
         self.record_user_traffic(0, len(data))
@@ -68,7 +70,7 @@ class CipherMan:
                 first_data = self._buffer
             salt = first_data[: self.cipher_cls.SALT_SIZE]
             if salt in self.bf:
-                raise RuntimeError(f"repeated salt founded!,peer:{self.peername},{salt}")
+                raise RuntimeError(f"repeated salt founded!,peer:{self.peer},{salt}")
             else:
                 self.bf.add(salt)
 
@@ -81,8 +83,7 @@ class CipherMan:
             if not access_user.enable:
                 raise RuntimeError(f"access user not have traffic: {access_user}")
             self.access_user = access_user
-            self.record_user_ip(self.peername)
-            self.incr_user_tcp_num(1)
+            self.record_user_ip(self.peer)
             data = bytes(self._buffer)
         if not self.cipher:
             self.cipher = self.cipher_cls(self.access_user.password)
@@ -93,14 +94,11 @@ class CipherMan:
         else:
             return self.cipher_cls(self.access_user.password).unpack(data)
 
-    def incr_user_tcp_num(self, num: int):
-        self.access_user and self.access_user.incr_tcp_conn_num(num)
-
-    def record_user_ip(self, peername):
-        self.access_user and self.access_user.record_ip(peername)
+    def record_user_ip(self, peer):
+        self.access_user and self.access_user.record_ip(peer)
 
     def record_user_traffic(self, ut_data_len: int, dt_data_len: int):
         self.access_user and self.access_user.record_traffic(ut_data_len, dt_data_len)
 
     def close(self):
-        self.incr_user_tcp_num(-1)
+        return

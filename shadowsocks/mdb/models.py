@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import datetime
 import logging
 
 import peewee
@@ -39,17 +40,16 @@ class User(BaseModel):
 
     @classmethod
     @db.atomic("EXCLUSIVE")
-    def __create_or_update_user_from_data(cls, data):
+    def __create_or_update_user_from_data(cls, data: dict) -> None:
         user_id = data.pop("user_id")
-        user, created = cls.get_or_create(user_id=user_id, defaults=data)
+        user, created = cls.get_or_create(id=user_id, defaults=data)
         if not created:
             user.update_from_dict(data)
             user.save()
         logger.debug(f"正在创建/更新用户 {user}")
-        return user
 
     @classmethod
-    def create_or_update_user_from_data_list(cls, user_data_list: list):
+    def create_or_update_user_from_data_list(cls, user_data_list: list) -> None:
         """
         从用户数据列表中创建或更新User表
         :param user_data_list:
@@ -59,12 +59,12 @@ class User(BaseModel):
         for user_data in user_data_list:
             user_ids.append(user_data["user_id"])
             cls.__create_or_update_user_from_data(user_data)
-        cnt = cls.delete().where(cls.user_id.not_in(user_ids)).execute()
+        cnt = cls.update(is_deleted=True).where(cls.id.not_in(user_ids)).execute()
         if cnt:
             logger.info(f"成功删除 {cnt} 个用户")
 
     @db.atomic("EXCLUSIVE")
-    def record_ip(self, peer):
+    def record_ip(self, peer) -> None:
         """
         记录连接IP
         :param peer:
@@ -72,11 +72,12 @@ class User(BaseModel):
         """
         if not peer:
             return
+
         self.conn_ip_set.add(peer[0])
-        User.update(conn_ip_set=self.conn_ip_set).where(User.user_id == self.user_id).execute()
+        User.update(conn_ip_set=self.conn_ip_set, updated=datetime.datetime.now()).where(User.id == self.id).execute()
 
     @db.atomic("EXCLUSIVE")
-    def record_traffic(self, upload, download):
+    def record_traffic(self, upload, download) -> None:
         """
         记录流量
         :param upload:
@@ -87,7 +88,9 @@ class User(BaseModel):
             download_traffic=User.download_traffic + download,
             upload_traffic=User.upload_traffic + upload,
             total_traffic=User.total_traffic + upload + download,
-        ).where(User.user_id == self.user_id).execute()
+            last_use_time=datetime.datetime.now(),
+            updated=datetime.datetime.now(),
+        ).where(User.id == self.id).execute()
 
     @classmethod
     def find_access_user(cls, port, method, ts_protocol, first_data) -> User:
@@ -116,7 +119,6 @@ class User(BaseModel):
 
         if access_user:
             # 记下成功访问的用户，下次优先找到他
-            access_user.access_order += 1
-            access_user.save()
+            User.update(single_port_access_weight=User.single_port_access_weight + 1).where(User.id == access_user.id)
 
         return access_user

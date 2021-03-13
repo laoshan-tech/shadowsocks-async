@@ -1,6 +1,7 @@
 import abc
 import hashlib
 import os
+from abc import ABC
 
 import hkdf
 from cryptography.hazmat.primitives.ciphers.aead import AESGCM, ChaCha20Poly1305
@@ -35,23 +36,23 @@ class BaseCipher(metaclass=abc.ABCMeta):
         return
 
     @abc.abstractmethod
-    def encrypt(self, data: bytes):
-        return
+    def encrypt(self, data: bytes) -> bytes:
+        pass
 
     @abc.abstractmethod
-    def decrypt(self, data: bytes):
-        return
+    def decrypt(self, data: bytes) -> bytes:
+        pass
 
     @abc.abstractmethod
     def unpack(self, data: bytes) -> bytes:
-        return
+        pass
 
     @abc.abstractmethod
     def pack(self, data: bytes) -> bytes:
-        return
+        pass
 
 
-class BaseAEADCipher(BaseCipher):
+class BaseAEADCipher(BaseCipher, ABC):
     """DOC: https://shadowsocks.org/en/wiki/AEAD-Ciphers
     TCP: [encrypted payload length][length tag][encrypted payload][payload tag]
     UDP: [salt][encrypted payload][tag]
@@ -78,18 +79,18 @@ class BaseAEADCipher(BaseCipher):
     def _make_random_salt(self):
         return os.urandom(self.SALT_SIZE)
 
-    def _encrypt(self, plaintext: bytes):
+    def _encrypt(self, plaintext: bytes) -> bytes:
         if not self._cipher:
             self._cipher = self.new_cipher(self._subkey)
         return self._cipher.encrypt(self.nonce, plaintext, None)
 
-    def _decrypt(self, ciphertext: bytes, tag: bytes):
+    def _decrypt(self, ciphertext: bytes, tag: bytes) -> bytes:
         if not self._cipher:
             self._cipher = self.new_cipher(self._subkey)
         return self._cipher.decrypt(self.nonce, bytes(ciphertext + tag), None)
 
     @property
-    def nonce(self):
+    def nonce(self) -> bytes:
         ret = self._counter.to_bytes(self.NONCE_SIZE, "little")
         self._counter += 1
         return ret
@@ -124,7 +125,7 @@ class BaseAEADCipher(BaseCipher):
                         self._decrypt(self._buffer[:2], self._buffer[2 : 2 + self.TAG_SIZE]), "big",
                     )
                     if self._payload_len > self.PACKET_LIMIT:
-                        raise RuntimeError(f"payload_len too long {self.payload_len}")
+                        raise RuntimeError(f"payload_len too long {self._payload_len}")
 
                     del self._buffer[: 2 + self.TAG_SIZE]
             else:

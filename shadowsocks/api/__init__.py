@@ -30,9 +30,10 @@ class BaseApi(object):
         """
         raise NotImplementedError("fetch_user_list method not defined")
 
-    async def report_user_stats(self) -> None:
+    async def report_user_stats(self, user_data: list) -> None:
         """
         上报user信息
+        :param user_data:
         :return:
         """
         raise NotImplementedError("report_user_stats method not defined")
