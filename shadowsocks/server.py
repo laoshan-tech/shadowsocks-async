@@ -2,11 +2,12 @@ import asyncio
 import inspect
 import logging
 import os
+import platform
 
 import fire
-import uvloop
+import peewee
 
-from shadowsocks.mdb import models, BaseModel
+from shadowsocks.mdb import models
 from shadowsocks.proxyman import ProxyMan
 
 logger = logging.getLogger(__name__)
@@ -65,7 +66,7 @@ class Server(object):
         :return:
         """
         for _, model in inspect.getmembers(models, inspect.isclass):
-            if issubclass(model, BaseModel) and model != BaseModel:
+            if issubclass(model, peewee.Model):
                 model.create_table()
                 logger.info(f"正在创建 {model} 内存数据库")
 
@@ -74,7 +75,15 @@ class Server(object):
         初始化事件循环
         :return:
         """
-        asyncio.set_event_loop_policy(uvloop.EventLoopPolicy())
+        is_win = platform.system().lower() == "windows"
+        if not is_win:
+            import uvloop
+
+            logger.info("使用 uvloop 加速")
+            uvloop.install()
+        else:
+            logger.info("使用原生 asyncio")
+
         self.loop = asyncio.get_event_loop()
 
     def __prepare(self) -> None:
@@ -85,9 +94,9 @@ class Server(object):
         if self.__prepared:
             return
 
-        self.__init_loop()
         self.__init_config()
         self.__prepare_logger()
+        self.__init_loop()
         self.__init_memory_db()
 
         self.proxy_man = ProxyMan(
